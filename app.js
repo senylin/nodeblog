@@ -13,6 +13,9 @@ var users = require('./routes/users');
 
 var session = require('express-session');
 var MongoStore = require('connect-mongo')(session);
+var fs = require('fs');
+var accessLog = fs.createWriteStream('access.log',{flags:'a'});
+var errorLog = fs.createWriteStream('error.log',{flags:'a'});
 var app = express();
 
 // view engine setup
@@ -40,10 +43,16 @@ app.use(multer({
   }
 }))
 app.use(logger('dev'));
+app.use(logger({stream:accessLog}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(function(err,req,res,next){
+  var meta = '['+new Date()+']'+req.url+'\n';
+  errorLog.write(meta+err.stack+'\n');
+  next();
+});
 
 routes(app);
 // catch 404 and forward to error handler
